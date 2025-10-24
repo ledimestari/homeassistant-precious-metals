@@ -1,0 +1,12 @@
+{
+  "domain": "precious-metal-prices",
+  "name": "Precious Metal Prices",
+  "codeowners": [
+    "@ledimestari"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/ledimestari/homeassistant-precious-metals",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/ledimestari/homeassistant-precious-metals/issues",
+  "version": "1.0.0"
+}
