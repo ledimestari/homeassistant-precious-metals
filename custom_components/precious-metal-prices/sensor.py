@@ -75,18 +75,18 @@ class PreciousMetalSensor(SensorEntity):
 
     def update(self):
         """Fetch updated metal price data."""
-        # Get metal price data
-        url = "https://api.edelmetalle.de/public.json"
-        price_response = requests.get(url)
-        price_data = price_response.json()
-
-        # Get gbp conversion rates, eur to gbp
-        url = "https://latest.currency-api.pages.dev/v1/currencies/eur.json"
-        currency_response = requests.get(url)
-        currency_data = currency_response.json()
-        gbp_rate = float(currency_data["eur"]["gbp"])
-
         try:
+            # Get metal price data
+            url = "https://api.edelmetalle.de/public.json"
+            price_response = requests.get(url)
+            price_data = price_response.json()
+
+            # Get gbp conversion rates, eur to gbp
+            url = "https://latest.currency-api.pages.dev/v1/currencies/eur.json"
+            currency_response = requests.get(url)
+            currency_data = currency_response.json()
+            gbp_rate = float(currency_data["eur"]["gbp"])
+
             # Update sensor values
             # ------
             # Gold
