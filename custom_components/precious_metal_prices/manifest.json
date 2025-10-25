@@ -1,5 +1,5 @@
 {
-  "domain": "precious-metal-prices",
+  "domain": "precious_metal_prices",
   "name": "Precious Metal Prices",
   "codeowners": [
     "@ledimestari"
