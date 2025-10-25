@@ -257,9 +257,9 @@ class PreciousMetalSensor(SensorEntity):
                     (float(price_data["palladium_eur"]) / 31.1 * 1000) * gbp_rate, 2
                 )
             # ---
-        except:
+        except:  # noqa: E722 # Silence the linter as all errors here can be skipped
             # If json data is not valid, do nothing
-            _LOGGER.info("Received invalid json data")
+            _LOGGER.info("Precious Metal Prices received invalid json data")
 
         _LOGGER.debug(
             "%s updated to %s %s",
