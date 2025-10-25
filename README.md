@@ -22,6 +22,8 @@ If there is a need for other currencies, they are easy to add too.
 
 ### HACS (Recommended)
 
+(soon)
+
 ### Manual
 
 Copy the "homeassistant-precious-metals" directory into the "custom_components" directory of your homeassistant install.
