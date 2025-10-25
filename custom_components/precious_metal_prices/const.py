@@ -1,4 +1,4 @@
 """Constant values for Precious Metal Prices integration."""
 
-DOMAIN = "precious-metal-prices"
+DOMAIN = "precious_metal_prices"
 TITLE = "Precious Metal Prices"
