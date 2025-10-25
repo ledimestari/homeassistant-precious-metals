@@ -24,7 +24,7 @@ If there is a need for other currencies, they are easy to add too.
 
 ### Manual
 
-Copy the "homeassistant_storj_integration" directory into the "custom_components" directory of your homeassistant install.
+Copy the "homeassistant-precious-metals" directory into the "custom_components" directory of your homeassistant install.
 
 ## Backend
 
