@@ -1,8 +1,8 @@
 # Precious Metal Prices for Homeassistant
 
-I didn't find a similar integration or any easier way to get metal prices into homeassistant so I wrote this. 
+I didn't find a similar integration or any easier way to get metal prices into homeassistant, so I wrote this. 
 
-This integration provides the same combinations of metal/weight/currency as BullioByPost does with live charts.
+This integration provides the same combinations of metal/weight/currency as BullioByPost does with their website live charts.
 
 ### Example card
 <img width="524" height="695" alt="image" src="https://github.com/user-attachments/assets/8a0d3a30-d087-4fb4-9baa-30fe16af3688" />
