@@ -22,7 +22,9 @@ If there is a need for other currencies, they are easy to add too.
 
 ### HACS (Recommended)
 
-(soon)
+Click the button below to install via HACS.
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ledimestari&repository=homeassistant-precious-metals&category=integration)
 
 ### Manual
 
