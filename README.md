@@ -30,7 +30,7 @@ Click the button below to install via HACS.
 
 Copy the "homeassistant-precious-metals" directory into the "custom_components" directory of your homeassistant install.
 
-
+> [!TIP]
 This integration has nothing you need to configure or set up. After adding the integration you have all the sensors available by default.
 
 ## Backend
