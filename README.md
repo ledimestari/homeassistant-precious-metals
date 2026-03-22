@@ -14,7 +14,7 @@ Provides the same combinations of metal/weight/currency as BullioByPost does wit
 
 - Provides sensors for gold, silver, platinum and palladium spot prices.
 - Each metal has its value in grams, troy ounces and kilograms.
-- Each of these is also provided in EUR, USD and GBP.
+- Each of these is also provided in CHF, EUR, USD and GBP.
 
 In total the integration provides 36 sensors.
 
