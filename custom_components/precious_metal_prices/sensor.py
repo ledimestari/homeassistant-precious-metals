@@ -34,6 +34,9 @@ SENSORS = [
     {"name": "Gold GBP/toz", "unit": "GBP", "icon": "mdi:currency-gbp"},
     {"name": "Gold GBP/g", "unit": "GBP", "icon": "mdi:currency-gbp"},
     {"name": "Gold GBP/kg", "unit": "GBP", "icon": "mdi:currency-gbp"},
+    {"name": "Gold CHF/toz", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Gold CHF/g", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Gold CHF/kg", "unit": "CHF", "icon": "mdi:currency-fra"},
     # Silver
     {"name": "Silver USD/toz", "unit": "USD", "icon": "mdi:currency-usd"},
     {"name": "Silver USD/g", "unit": "USD", "icon": "mdi:currency-usd"},
@@ -44,6 +47,12 @@ SENSORS = [
     {"name": "Silver GBP/toz", "unit": "GBP", "icon": "mdi:currency-gbp"},
     {"name": "Silver GBP/g", "unit": "GBP", "icon": "mdi:currency-gbp"},
     {"name": "Silver GBP/kg", "unit": "GBP", "icon": "mdi:currency-gbp"},
+    {"name": "Silver CHF/toz", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Silver CHF/g", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Silver CHF/kg", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Platinum CHF/toz", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Platinum CHF/g", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Platinum CHF/kg", "unit": "CHF", "icon": "mdi:currency-fra"},
     # Platinum
     {"name": "Platinum USD/toz", "unit": "USD", "icon": "mdi:currency-usd"},
     {"name": "Platinum USD/g", "unit": "USD", "icon": "mdi:currency-usd"},
@@ -64,6 +73,9 @@ SENSORS = [
     {"name": "Palladium GBP/toz", "unit": "GBP", "icon": "mdi:currency-gbp"},
     {"name": "Palladium GBP/g", "unit": "GBP", "icon": "mdi:currency-gbp"},
     {"name": "Palladium GBP/kg", "unit": "GBP", "icon": "mdi:currency-gbp"},
+    {"name": "Palladium CHF/toz", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Palladium CHF/g", "unit": "CHF", "icon": "mdi:currency-fra"},
+    {"name": "Palladium CHF/kg", "unit": "CHF", "icon": "mdi:currency-fra"},
 ]
 
 
@@ -112,6 +124,7 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 resp.raise_for_status()
                 currency_data = await resp.json()
                 result["gbp_rate"] = float(currency_data["eur"]["gbp"])
+                result["chf_rate"] = float(currency_data["eur"]["chf"])
             api_calls += 1
             _LOGGER.debug(
                 "Currency API call 2/2 completed in %.2fs (total so far: %.2fs)",
@@ -179,11 +192,19 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
         if data is None:
             return
         price_data = data
+
+        # check rate values
         gbp_rate = data.get("gbp_rate")
         if gbp_rate is None:
             gbp_rate = 0.0
         else:
             gbp_rate = float(gbp_rate)
+
+        chf_rate = data.get("chf_rate")
+        if chf_rate is None:
+            chf_rate = 0.0
+        else:
+            chf_rate = float(chf_rate)
 
         try:
             # Update sensor values
@@ -225,6 +246,21 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
             if self._attr_name == "Gold GBP/kg":
                 self._attr_native_value = round(
                     (float(price_data["gold_eur"]) / 31.1 * 1000) * gbp_rate, 2
+                )
+            # ---
+            if self._attr_name == "Gold CHF/toz":
+                self._attr_native_value = round(
+                    float(price_data["gold_eur"]) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Gold CHF/g":
+                self._attr_native_value = round(
+                    (float(price_data["gold_eur"]) / 31.1) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Gold CHF/kg":
+                self._attr_native_value = round(
+                    (float(price_data["gold_eur"]) / 31.1 * 1000) * chf_rate, 2
                 )
             # ------
             # Silver
@@ -269,6 +305,21 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
                 self._attr_native_value = round(
                     (float(price_data["silber_eur"]) / 31.1 * 1000) * gbp_rate, 2
                 )
+            # ---
+            if self._attr_name == "Silver CHF/toz":
+                self._attr_native_value = round(
+                    float(price_data["silber_eur"]) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Silver CHF/g":
+                self._attr_native_value = round(
+                    (float(price_data["silber_eur"]) / 31.1) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Silver CHF/kg":
+                self._attr_native_value = round(
+                    (float(price_data["silber_eur"]) / 31.1 * 1000) * chf_rate, 2
+                )
             # ------
             # Platinum
             # ---
@@ -312,6 +363,21 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
                 self._attr_native_value = round(
                     (float(price_data["platin_eur"]) / 31.1 * 1000) * gbp_rate, 2
                 )
+            # ---
+            if self._attr_name == "Platinum CHF/toz":
+                self._attr_native_value = round(
+                    float(price_data["platin_eur"]) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Platinum CHF/g":
+                self._attr_native_value = round(
+                    (float(price_data["platin_eur"]) / 31.1) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Platinum CHF/kg":
+                self._attr_native_value = round(
+                    (float(price_data["platin_eur"]) / 31.1 * 1000) * chf_rate, 2
+                )
             # ------
             # Palladium
             # ---
@@ -354,6 +420,21 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
             if self._attr_name == "Palladium GBP/kg":
                 self._attr_native_value = round(
                     (float(price_data["palladium_eur"]) / 31.1 * 1000) * gbp_rate, 2
+                )
+            # ---
+            if self._attr_name == "Palladium CHF/toz":
+                self._attr_native_value = round(
+                    float(price_data["palladium_eur"]) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Palladium CHF/g":
+                self._attr_native_value = round(
+                    (float(price_data["palladium_eur"]) / 31.1) * chf_rate, 2
+                )
+            # ---
+            if self._attr_name == "Palladium CHF/kg":
+                self._attr_native_value = round(
+                    (float(price_data["palladium_eur"]) / 31.1 * 1000) * chf_rate, 2
                 )
             # ---
         except Exception:  # noqa: BLE001
