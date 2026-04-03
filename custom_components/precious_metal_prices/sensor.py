@@ -7,7 +7,7 @@ import time
 from datetime import timedelta
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import (
@@ -160,8 +160,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         for cfg in SENSORS
     ]
     async_add_entities(sensors, update_before_add=True)
-
-
+  
 class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEntity):
     """Sensor that reads from coordinator data.
 
@@ -171,6 +170,7 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
     """
 
     _attr_should_poll = False
+    _attr_state_class = SensorStateClass.MEASUREMENT    # to allow LTS long time statistics in HA
 
     def __init__(
         self,
