@@ -171,7 +171,7 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
     """
 
     _attr_should_poll = False
-    _attr_state_class = SensorStateClass.MEASUREMENT    # to allow LTS long time statistics in HA
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(
         self,
