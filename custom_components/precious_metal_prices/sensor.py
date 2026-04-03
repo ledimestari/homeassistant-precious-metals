@@ -160,7 +160,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         for cfg in SENSORS
     ]
     async_add_entities(sensors, update_before_add=True)
-  
+
+
 class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEntity):
     """Sensor that reads from coordinator data.
 
