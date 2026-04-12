@@ -25,10 +25,14 @@ SCAN_INTERVAL = timedelta(seconds=60)
 
 # Required fields from metal API
 REQUIRED_METAL_FIELDS = {
-    "gold_usd", "gold_eur",
-    "silber_usd", "silber_eur",
-    "platin_usd", "platin_eur",
-    "palladium_usd", "palladium_eur"
+    "gold_usd",
+    "gold_eur",
+    "silber_usd",
+    "silber_eur",
+    "platin_usd",
+    "platin_eur",
+    "palladium_usd",
+    "palladium_eur",
 }
 
 SENSORS = [
@@ -116,14 +120,14 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             async with session.get(METAL_API_URL) as resp:
                 resp.raise_for_status()
                 price_data = await resp.json()
-                
+
                 # Validate response is not empty and contains required fields
                 if not price_data or not isinstance(price_data, dict):
                     _LOGGER.warning(
                         "Metal API returned invalid data: empty or non-dict response"
                     )
                     return None
-                
+
                 missing_fields = REQUIRED_METAL_FIELDS - set(price_data.keys())
                 if missing_fields:
                     _LOGGER.warning(
@@ -131,7 +135,7 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         missing_fields,
                     )
                     return None
-                
+
                 result.update(price_data)
             api_calls += 1
             _LOGGER.debug(
@@ -147,20 +151,18 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             async with session.get(CURRENCY_API_URL) as resp:
                 resp.raise_for_status()
                 currency_data = await resp.json()
-                
+
                 # Validate currency data structure
                 if not currency_data or not isinstance(currency_data, dict):
                     raise ValueError("Currency API returned empty or non-dict response")
-                
+
                 eur_data = currency_data.get("eur")
                 if not isinstance(eur_data, dict):
                     raise ValueError("Currency API missing 'eur' key in response")
-                
+
                 if "gbp" not in eur_data or "chf" not in eur_data:
-                    raise ValueError(
-                        "Currency API missing 'gbp' or 'chf' in eur data"
-                    )
-                
+                    raise ValueError("Currency API missing 'gbp' or 'chf' in eur data")
+
                 result["gbp_rate"] = float(eur_data["gbp"])
                 result["chf_rate"] = float(eur_data["chf"])
             api_calls += 1
@@ -231,7 +233,7 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
         if data is None:
             self._attr_native_value = None
             return
-        
+
         price_data = data
 
         # check rate values
