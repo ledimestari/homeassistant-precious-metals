@@ -23,6 +23,18 @@ METAL_API_URL = "https://api.edelmetalle.de/public.json"
 CURRENCY_API_URL = "https://latest.currency-api.pages.dev/v1/currencies/eur.json"
 SCAN_INTERVAL = timedelta(seconds=60)
 
+# Required fields from metal API
+REQUIRED_METAL_FIELDS = {
+    "gold_usd",
+    "gold_eur",
+    "silber_usd",
+    "silber_eur",
+    "platin_usd",
+    "platin_eur",
+    "palladium_usd",
+    "palladium_eur",
+}
+
 SENSORS = [
     # Gold
     {"name": "Gold USD/toz", "unit": "USD", "icon": "mdi:currency-usd"},
@@ -108,6 +120,22 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             async with session.get(METAL_API_URL) as resp:
                 resp.raise_for_status()
                 price_data = await resp.json()
+
+                # Validate response is not empty and contains required fields
+                if not price_data or not isinstance(price_data, dict):
+                    _LOGGER.warning(
+                        "Metal API returned invalid data: empty or non-dict response"
+                    )
+                    return None
+
+                missing_fields = REQUIRED_METAL_FIELDS - set(price_data.keys())
+                if missing_fields:
+                    _LOGGER.warning(
+                        "Metal API response missing required fields: %s",
+                        missing_fields,
+                    )
+                    return None
+
                 result.update(price_data)
             api_calls += 1
             _LOGGER.debug(
@@ -116,15 +144,27 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
         except Exception as err:
             _LOGGER.warning("Metal API request failed: %s", err)
-            return result if result else None
+            return None
 
         try:
             t1 = time.monotonic()
             async with session.get(CURRENCY_API_URL) as resp:
                 resp.raise_for_status()
                 currency_data = await resp.json()
-                result["gbp_rate"] = float(currency_data["eur"]["gbp"])
-                result["chf_rate"] = float(currency_data["eur"]["chf"])
+
+                # Validate currency data structure
+                if not currency_data or not isinstance(currency_data, dict):
+                    raise ValueError("Currency API returned empty or non-dict response")
+
+                eur_data = currency_data.get("eur")
+                if not isinstance(eur_data, dict):
+                    raise ValueError("Currency API missing 'eur' key in response")
+
+                if "gbp" not in eur_data or "chf" not in eur_data:
+                    raise ValueError("Currency API missing 'gbp' or 'chf' in eur data")
+
+                result["gbp_rate"] = float(eur_data["gbp"])
+                result["chf_rate"] = float(eur_data["chf"])
             api_calls += 1
             _LOGGER.debug(
                 "Currency API call 2/2 completed in %.2fs (total so far: %.2fs)",
@@ -134,14 +174,14 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.warning(
                 "Currency API request failed: %s. USD/EUR sensors still work; "
-                "GBP sensors will be unavailable. Check network/DNS/firewall to "
+                "GBP/CHF sensors will be unavailable. Check network/DNS/firewall to "
                 "latest.currency-api.pages.dev",
                 err,
             )
             _LOGGER.debug("Currency API full error", exc_info=True)
-            if not result:
-                return None
+            # Set rates to None so sensors can detect unavailability
             result["gbp_rate"] = None
+            result["chf_rate"] = None
 
         total_elapsed = time.monotonic() - t0
         _LOGGER.debug(
@@ -191,7 +231,9 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
         """Derive this sensor's value from shared coordinator.data."""
         data = self.coordinator.data
         if data is None:
+            self._attr_native_value = None
             return
+
         price_data = data
 
         # check rate values
@@ -199,13 +241,21 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
         if gbp_rate is None:
             gbp_rate = 0.0
         else:
-            gbp_rate = float(gbp_rate)
+            try:
+                gbp_rate = float(gbp_rate)
+            except (ValueError, TypeError):
+                _LOGGER.warning("Invalid gbp_rate value: %s", gbp_rate)
+                gbp_rate = 0.0
 
         chf_rate = data.get("chf_rate")
         if chf_rate is None:
             chf_rate = 0.0
         else:
-            chf_rate = float(chf_rate)
+            try:
+                chf_rate = float(chf_rate)
+            except (ValueError, TypeError):
+                _LOGGER.warning("Invalid chf_rate value: %s", chf_rate)
+                chf_rate = 0.0
 
         try:
             # Update sensor values
@@ -438,8 +488,20 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
                     (float(price_data["palladium_eur"]) / 31.1 * 1000) * chf_rate, 2
                 )
             # ---
-        except Exception:  # noqa: BLE001
-            _LOGGER.info("Precious Metal Prices received invalid json data")
+        except KeyError as err:
+            _LOGGER.warning(
+                "Missing field %s in API response. Sensor %s cannot be updated.",
+                err,
+                self._attr_name,
+            )
+            self._attr_native_value = None
+        except (ValueError, TypeError) as err:
+            _LOGGER.warning(
+                "Invalid data type in API response for sensor %s: %s",
+                self._attr_name,
+                err,
+            )
+            self._attr_native_value = None
 
         _LOGGER.debug(
             "%s updated to %s %s",
