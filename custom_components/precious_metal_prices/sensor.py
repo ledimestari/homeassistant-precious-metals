@@ -263,225 +263,225 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
             if self._attr_name == "Gold USD/toz":
                 self._attr_native_value = round(float(price_data["gold_usd"]), 2)
             # ---
-            elif self._attr_name == "Gold USD/g":
+            if self._attr_name == "Gold USD/g":
                 self._attr_native_value = round(float(price_data["gold_usd"]) / 31.1, 2)
             # ---
-            elif self._attr_name == "Gold USD/kg":
+            if self._attr_name == "Gold USD/kg":
                 self._attr_native_value = round(
                     float(price_data["gold_usd"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Gold EUR/toz":
+            if self._attr_name == "Gold EUR/toz":
                 self._attr_native_value = round(float(price_data["gold_eur"]), 2)
             # ---
-            elif self._attr_name == "Gold EUR/g":
+            if self._attr_name == "Gold EUR/g":
                 self._attr_native_value = round(float(price_data["gold_eur"]) / 31.1, 2)
             # ---
-            elif self._attr_name == "Gold EUR/kg":
+            if self._attr_name == "Gold EUR/kg":
                 self._attr_native_value = round(
                     float(price_data["gold_eur"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Gold GBP/toz":
+            if self._attr_name == "Gold GBP/toz":
                 self._attr_native_value = round(
                     float(price_data["gold_eur"]) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Gold GBP/g":
+            if self._attr_name == "Gold GBP/g":
                 self._attr_native_value = round(
                     (float(price_data["gold_eur"]) / 31.1) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Gold GBP/kg":
+            if self._attr_name == "Gold GBP/kg":
                 self._attr_native_value = round(
                     (float(price_data["gold_eur"]) / 31.1 * 1000) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Gold CHF/toz":
+            if self._attr_name == "Gold CHF/toz":
                 self._attr_native_value = round(
                     float(price_data["gold_eur"]) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Gold CHF/g":
+            if self._attr_name == "Gold CHF/g":
                 self._attr_native_value = round(
                     (float(price_data["gold_eur"]) / 31.1) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Gold CHF/kg":
+            if self._attr_name == "Gold CHF/kg":
                 self._attr_native_value = round(
                     (float(price_data["gold_eur"]) / 31.1 * 1000) * chf_rate, 2
                 )
             # ------
             # Silver
             # ---
-            elif self._attr_name == "Silver USD/toz":
+            if self._attr_name == "Silver USD/toz":
                 self._attr_native_value = round(float(price_data["silber_usd"]), 2)
             # ---
-            elif self._attr_name == "Silver USD/g":
+            if self._attr_name == "Silver USD/g":
                 self._attr_native_value = round(
                     float(price_data["silber_usd"]) / 31.1, 2
                 )
             # ---
-            elif self._attr_name == "Silver USD/kg":
+            if self._attr_name == "Silver USD/kg":
                 self._attr_native_value = round(
                     float(price_data["silber_usd"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Silver EUR/toz":
+            if self._attr_name == "Silver EUR/toz":
                 self._attr_native_value = round(float(price_data["silber_eur"]), 2)
             # ---
-            elif self._attr_name == "Silver EUR/g":
+            if self._attr_name == "Silver EUR/g":
                 self._attr_native_value = round(
                     float(price_data["silber_eur"]) / 31.1, 2
                 )
             # ---
-            elif self._attr_name == "Silver EUR/kg":
+            if self._attr_name == "Silver EUR/kg":
                 self._attr_native_value = round(
                     float(price_data["silber_eur"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Silver GBP/toz":
+            if self._attr_name == "Silver GBP/toz":
                 self._attr_native_value = round(
                     float(price_data["silber_eur"]) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Silver GBP/g":
+            if self._attr_name == "Silver GBP/g":
                 self._attr_native_value = round(
                     (float(price_data["silber_eur"]) / 31.1) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Silver GBP/kg":
+            if self._attr_name == "Silver GBP/kg":
                 self._attr_native_value = round(
                     (float(price_data["silber_eur"]) / 31.1 * 1000) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Silver CHF/toz":
+            if self._attr_name == "Silver CHF/toz":
                 self._attr_native_value = round(
                     float(price_data["silber_eur"]) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Silver CHF/g":
+            if self._attr_name == "Silver CHF/g":
                 self._attr_native_value = round(
                     (float(price_data["silber_eur"]) / 31.1) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Silver CHF/kg":
+            if self._attr_name == "Silver CHF/kg":
                 self._attr_native_value = round(
                     (float(price_data["silber_eur"]) / 31.1 * 1000) * chf_rate, 2
                 )
             # ------
             # Platinum
             # ---
-            elif self._attr_name == "Platinum USD/toz":
+            if self._attr_name == "Platinum USD/toz":
                 self._attr_native_value = round(float(price_data["platin_usd"]), 2)
             # ---
-            elif self._attr_name == "Platinum USD/g":
+            if self._attr_name == "Platinum USD/g":
                 self._attr_native_value = round(
                     float(price_data["platin_usd"]) / 31.1, 2
                 )
             # ---
-            elif self._attr_name == "Platinum USD/kg":
+            if self._attr_name == "Platinum USD/kg":
                 self._attr_native_value = round(
                     float(price_data["platin_usd"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Platinum EUR/toz":
+            if self._attr_name == "Platinum EUR/toz":
                 self._attr_native_value = round(float(price_data["platin_eur"]), 2)
             # ---
-            elif self._attr_name == "Platinum EUR/g":
+            if self._attr_name == "Platinum EUR/g":
                 self._attr_native_value = round(
                     float(price_data["platin_eur"]) / 31.1, 2
                 )
             # ---
-            elif self._attr_name == "Platinum EUR/kg":
+            if self._attr_name == "Platinum EUR/kg":
                 self._attr_native_value = round(
                     float(price_data["platin_eur"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Platinum GBP/toz":
+            if self._attr_name == "Platinum GBP/toz":
                 self._attr_native_value = round(
                     float(price_data["platin_eur"]) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Platinum GBP/g":
+            if self._attr_name == "Platinum GBP/g":
                 self._attr_native_value = round(
                     (float(price_data["platin_eur"]) / 31.1) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Platinum GBP/kg":
+            if self._attr_name == "Platinum GBP/kg":
                 self._attr_native_value = round(
                     (float(price_data["platin_eur"]) / 31.1 * 1000) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Platinum CHF/toz":
+            if self._attr_name == "Platinum CHF/toz":
                 self._attr_native_value = round(
                     float(price_data["platin_eur"]) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Platinum CHF/g":
+            if self._attr_name == "Platinum CHF/g":
                 self._attr_native_value = round(
                     (float(price_data["platin_eur"]) / 31.1) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Platinum CHF/kg":
+            if self._attr_name == "Platinum CHF/kg":
                 self._attr_native_value = round(
                     (float(price_data["platin_eur"]) / 31.1 * 1000) * chf_rate, 2
                 )
             # ------
             # Palladium
             # ---
-            elif self._attr_name == "Palladium USD/toz":
+            if self._attr_name == "Palladium USD/toz":
                 self._attr_native_value = round(float(price_data["palladium_usd"]), 2)
             # ---
-            elif self._attr_name == "Palladium USD/g":
+            if self._attr_name == "Palladium USD/g":
                 self._attr_native_value = round(
                     float(price_data["palladium_usd"]) / 31.1, 2
                 )
             # ---
-            elif self._attr_name == "Palladium USD/kg":
+            if self._attr_name == "Palladium USD/kg":
                 self._attr_native_value = round(
                     float(price_data["palladium_usd"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Palladium EUR/toz":
+            if self._attr_name == "Palladium EUR/toz":
                 self._attr_native_value = round(float(price_data["palladium_eur"]), 2)
             # ---
-            elif self._attr_name == "Palladium EUR/g":
+            if self._attr_name == "Palladium EUR/g":
                 self._attr_native_value = round(
                     float(price_data["palladium_eur"]) / 31.1, 2
                 )
             # ---
-            elif self._attr_name == "Palladium EUR/kg":
+            if self._attr_name == "Palladium EUR/kg":
                 self._attr_native_value = round(
                     float(price_data["palladium_eur"]) / 31.1 * 1000, 2
                 )
             # ---
-            elif self._attr_name == "Palladium GBP/toz":
+            if self._attr_name == "Palladium GBP/toz":
                 self._attr_native_value = round(
                     float(price_data["palladium_eur"]) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Palladium GBP/g":
+            if self._attr_name == "Palladium GBP/g":
                 self._attr_native_value = round(
                     (float(price_data["palladium_eur"]) / 31.1) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Palladium GBP/kg":
+            if self._attr_name == "Palladium GBP/kg":
                 self._attr_native_value = round(
                     (float(price_data["palladium_eur"]) / 31.1 * 1000) * gbp_rate, 2
                 )
             # ---
-            elif self._attr_name == "Palladium CHF/toz":
+            if self._attr_name == "Palladium CHF/toz":
                 self._attr_native_value = round(
                     float(price_data["palladium_eur"]) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Palladium CHF/g":
+            if self._attr_name == "Palladium CHF/g":
                 self._attr_native_value = round(
                     (float(price_data["palladium_eur"]) / 31.1) * chf_rate, 2
                 )
             # ---
-            elif self._attr_name == "Palladium CHF/kg":
+            if self._attr_name == "Palladium CHF/kg":
                 self._attr_native_value = round(
                     (float(price_data["palladium_eur"]) / 31.1 * 1000) * chf_rate, 2
                 )
