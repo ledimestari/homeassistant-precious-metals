@@ -488,7 +488,7 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
             # ---
         except KeyError as err:
             _LOGGER.warning(
-                "Missing required field %s in API response. Sensor %s cannot be updated.",
+                "Missing field %s in API response. Sensor %s cannot be updated.",
                 err,
                 self._attr_name,
             )
