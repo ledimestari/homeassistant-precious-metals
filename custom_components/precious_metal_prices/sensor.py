@@ -146,6 +146,7 @@ class MetalPriceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.warning("Metal API request failed: %s", err)
             return None
 
+
 class CurrencyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Fetches EUR-GBP/CHF rates once per hours."""
 
