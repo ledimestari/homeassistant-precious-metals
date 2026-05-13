@@ -24,13 +24,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data.setdefault(DOMAIN, {})
 
-    """Distincitive coordinator to allow different update time"""
+    # Distincitive coordinator to allow different update time.
     metal_coordinator = MetalPriceCoordinator(hass)
     currency_coordinator = CurrencyCoordinator(hass)
     
-    """Fetch initial data before setting up sensors."""
-    """Currency coordinator is refreshed first so rates are available immediately
-    when the metal coordinator triggers the first sensor update."""
+    # Fetch initial data before setting up sensors
+    # Currency coordinator is refreshed first so rates are available immediately
+    # when the metal coordinator triggers the first sensor update
     await currency_coordinator.async_config_entry_first_refresh()
     await metal_coordinator.async_config_entry_first_refresh()
 
