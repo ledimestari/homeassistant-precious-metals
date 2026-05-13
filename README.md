@@ -12,9 +12,9 @@ Provides the same combinations of metal/weight/currency as BullioByPost does wit
 
 ## Features
 
-- Provides sensors for gold, silver, platinum and palladium spot prices.
+- Provides sensors for gold, silver, platinum and palladium spot prices updated every 5 minutes
 - Each metal has its value in grams, troy ounces and kilograms.
-- Each of these is provided in CHF, EUR, USD and GBP.
+- Each of these is provided in EUR, USD (with continuous rating) and can be converted in CHFand GBP (with daily rates).
 
 In total the integration provides 48 sensors.
 
@@ -39,5 +39,5 @@ This integration has nothing you need to configure or set up. After adding the i
 
 Please note: All data is provided without any guarantee.
 
-- Price data is fetched from gold.de API: https://www.gold.de/chartgenerator/#api
-- Currency conversion rates are fetched using this great project: https://github.com/fawazahmed0/exchange-api
+- Price data is fetched (evry 5 minutes) in EUR and USD from gold.de API: https://www.gold.de/chartgenerator/#api
+- Currency conversion rates (daily updated) are fetched using this great project: https://github.com/fawazahmed0/exchange-api
