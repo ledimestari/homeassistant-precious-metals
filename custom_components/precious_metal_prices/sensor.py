@@ -112,7 +112,6 @@ class MetalPriceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         in coordinator.data and used by all PreciousMetalSensor entities.
         """
         session = async_get_clientsession(self.hass)
-        result: dict[str, Any] = {}
         t0 = time.monotonic()
         try:
             """timeout to allow to get out
