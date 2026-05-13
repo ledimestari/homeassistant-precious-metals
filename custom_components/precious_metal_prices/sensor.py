@@ -147,7 +147,7 @@ class MetalPriceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
 
 class CurrencyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Fetches EUR-GBP/CHF rates once per hours?"""
+    """Fetches EUR-GBP/CHF rates once per hours"""
 
     def __init__(self, hass: HomeAssistant) -> None:
         super().__init__(
@@ -210,7 +210,7 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities) -> N
             metal_coordinator, currency_coordinator
         )
         for cfg in SENSORS
-    ] 
+    ]
 
     async_add_entities(sensors, update_before_add=True)
 
@@ -243,7 +243,7 @@ class PreciousMetalSensor(CoordinatorEntity[MetalPriceCoordinator], SensorEntity
         self._attr_unique_id = name.lower().replace(" ", "_")
         self._attr_native_value = None
 
-    """check is we have value or put a 0.0 as default."""
+    # check if we have value or put a 0.0 as default.
     def _get_rates(self) -> tuple[float, float]:
         data = self._currency_coordinator.data or {}
         return float(data.get("gbp_rate", 0.0)), float(data.get("chf_rate", 0.0))
@@ -258,8 +258,7 @@ class PreciousMetalSensor(CoordinatorEntity[MetalPriceCoordinator], SensorEntity
         gbp_rate, chf_rate = self._get_rates()
 
         try:
-            # Update sensor values
-            """using elif to limit the unusefull comparisons."""
+            # Update using elif to limit the unusefull comparisons.
             n = self._attr_name
             # Gold
             if n == "Gold USD/toz":
