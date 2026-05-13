@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .sensor import PreciousMetalCoordinator
+from .sensor import CurrencyCoordinator, MetalPriceCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
