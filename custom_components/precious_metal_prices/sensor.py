@@ -147,7 +147,7 @@ class MetalPriceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
 
 class CurrencyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Fetches EUR-GBP/CHF rates once per hours"""
+    """Fetches EUR-GBP/CHF rates once per hours."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         super().__init__(
