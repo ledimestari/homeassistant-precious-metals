@@ -114,10 +114,9 @@ class MetalPriceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         session = async_get_clientsession(self.hass)
         t0 = time.monotonic()
         try:
-            """timeout to allow to get out
-            If either API is slow to respond, the request can hang indefinitely
-            causing HA to log an error when the connection eventually drops.
-            """
+            # timeout to allow to get out
+            # If either API is slow to respond, the request can hang indefinitely
+            # causing HA to log an error when the connection eventually drops.
             async with session.get(METAL_API_URL, timeout=10) as resp:
                 resp.raise_for_status()
                 price_data = await resp.json()
@@ -202,8 +201,12 @@ class CurrencyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities) -> None:
     """Set up sensors from the two coordinators (created in __init__.py)."""
-    metal_coordinator: MetalPriceCoordinator = hass.data[DOMAIN][entry.entry_id]["metal"]
-    currency_coordinator: CurrencyCoordinator = hass.data[DOMAIN][entry.entry_id]["currency"]
+    metal_coordinator: MetalPriceCoordinator = (
+    hass.data[DOMAIN][entry.entry_id]["metal"]
+    )
+    currency_coordinator: CurrencyCoordinator = (
+    hass.data[DOMAIN][entry.entry_id]["currency"]
+    )
 
     sensors = [
         PreciousMetalSensor(
@@ -385,6 +388,6 @@ class PreciousMetalSensor(CoordinatorEntity[MetalPriceCoordinator], SensorEntity
         )
 
     def _handle_coordinator_update(self) -> None:
-        """Called when metal coordinator has new data"""
+        """Called when metal coordinator has new data."""
         self._update_from_coordinator_data()
         self.async_write_ha_state()
