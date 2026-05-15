@@ -21,7 +21,11 @@ _LOGGER = logging.getLogger(__name__)
 
 METAL_API_URL = "https://api.edelmetalle.de/public.json"
 CURRENCY_API_URL = "https://latest.currency-api.pages.dev/v1/currencies/eur.json"
-SCAN_INTERVAL = timedelta(seconds=60)
+
+# Metal prices update every 5 minutes on the source
+METAL_SCAN_INTERVAL = timedelta(minutes=5)
+# Currency rates update seems even not to update once per hour?
+CURRENCY_SCAN_INTERVAL = timedelta(hours=1)
 
 # Required fields from metal API
 REQUIRED_METAL_FIELDS = {
@@ -91,33 +95,29 @@ SENSORS = [
 ]
 
 
-class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Fetches metal prices and EUR→GBP rate once per update interval.
-
-    All sensors read from coordinator.data.
-    """
+class MetalPriceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """Fetches metal prices every 5 minutes (source update frequency)."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         super().__init__(
             hass,
             _LOGGER,
-            name="precious_metal_prices",
-            update_interval=SCAN_INTERVAL,
+            name="precious_metal_prices_metals",
+            update_interval=METAL_SCAN_INTERVAL,
         )
 
     async def _async_update_data(self) -> dict[str, Any] | None:
         """Fetch metal API and currency API once; return combined data.
-
         Called once per SCAN_INTERVAL by the coordinator. Result is stored
         in coordinator.data and used by all PreciousMetalSensor entities.
         """
         session = async_get_clientsession(self.hass)
-        result: dict[str, Any] = {}
         t0 = time.monotonic()
-        api_calls = 0
-
         try:
-            async with session.get(METAL_API_URL) as resp:
+            # timeout to allow to get out
+            # If either API is slow to respond, the request can hang indefinitely
+            # causing HA to log an error when the connection eventually drops.
+            async with session.get(METAL_API_URL, timeout=10) as resp:
                 resp.raise_for_status()
                 price_data = await resp.json()
 
@@ -136,21 +136,32 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
                     return None
 
-                result.update(price_data)
-            api_calls += 1
-            _LOGGER.debug(
-                "Metal API call 1/2 completed in %.2fs",
-                time.monotonic() - t0,
-            )
+                _LOGGER.debug("Metal API updated in %.2fs", time.monotonic() - t0)
+                return price_data
+
         except Exception as err:
             _LOGGER.warning("Metal API request failed: %s", err)
             return None
 
+
+class CurrencyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+    """Fetches EUR-GBP/CHF rates once per hours."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        super().__init__(
+            hass,
+            _LOGGER,
+            name="precious_metal_prices_currency",
+            update_interval=CURRENCY_SCAN_INTERVAL,
+        )
+
+    async def _async_update_data(self) -> dict[str, float | None]:
+        session = async_get_clientsession(self.hass)
+        t0 = time.monotonic()
         try:
-            t1 = time.monotonic()
-            async with session.get(CURRENCY_API_URL) as resp:
+            async with session.get(CURRENCY_API_URL, timeout=10) as resp:
                 resp.raise_for_status()
-                currency_data = await resp.json()
+                currency_data = await resp.json(content_type=None)
 
                 # Validate currency data structure
                 if not currency_data or not isinstance(currency_data, dict):
@@ -163,51 +174,61 @@ class PreciousMetalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if "gbp" not in eur_data or "chf" not in eur_data:
                     raise ValueError("Currency API missing 'gbp' or 'chf' in eur data")
 
-                result["gbp_rate"] = float(eur_data["gbp"])
-                result["chf_rate"] = float(eur_data["chf"])
-            api_calls += 1
-            _LOGGER.debug(
-                "Currency API call 2/2 completed in %.2fs (total so far: %.2fs)",
-                time.monotonic() - t1,
-                time.monotonic() - t0,
-            )
+                rates = {
+                    "gbp_rate": float(eur_data["gbp"]),
+                    "chf_rate": float(eur_data["chf"]),
+                }
+                _LOGGER.debug(
+                    "Currency API updated in %.2fs (GBP=%.4f, CHF=%.4f)",
+                    time.monotonic() - t0,
+                    rates["gbp_rate"],
+                    rates["chf_rate"],
+                )
+                return rates
+
         except Exception as err:
             _LOGGER.warning(
                 "Currency API request failed: %s. USD/EUR sensors still work; "
-                "GBP/CHF sensors will be unavailable. Check network/DNS/firewall to "
-                "latest.currency-api.pages.dev",
+                "GBP/CHF or other currency sensors will use last. "
+                "Check network/DNS/firewall to latest.currency-api.pages.dev",
                 err,
             )
             _LOGGER.debug("Currency API full error", exc_info=True)
-            # Set rates to None so sensors can detect unavailability
-            result["gbp_rate"] = None
-            result["chf_rate"] = None
-
-        total_elapsed = time.monotonic() - t0
-        _LOGGER.debug(
-            "Precious metal refresh: %d API calls, %.2fs total",
-            api_calls,
-            total_elapsed,
-        )
-        return result
+            # Return None to keep last known data
+            # (coordinator preserves previous data on failure)
+            return None
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up sensors from the shared coordinator (created in __init__.py)."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities) -> None:
+    """Set up sensors from the two coordinators (created in __init__.py)."""
+    metal_coordinator: MetalPriceCoordinator = hass.data[DOMAIN][entry.entry_id][
+        "metal"
+    ]
+    currency_coordinator: CurrencyCoordinator = hass.data[DOMAIN][entry.entry_id][
+        "currency"
+    ]
+
     sensors = [
-        PreciousMetalSensor(cfg["name"], cfg["unit"], cfg["icon"], coordinator)
+        PreciousMetalSensor(
+            cfg["name"],
+            cfg["unit"],
+            cfg["icon"],
+            metal_coordinator,
+            currency_coordinator,
+        )
         for cfg in SENSORS
     ]
+
     async_add_entities(sensors, update_before_add=True)
 
 
-class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEntity):
-    """Sensor that reads from coordinator data.
+class PreciousMetalSensor(CoordinatorEntity[MetalPriceCoordinator], SensorEntity):
+    """Sensor that reads from coordinators data.
 
-    should_poll = False so Home Assistant does not call update() on each
-    entity every scan. Instead we rely
-    on _handle_coordinator_update when the coordinator refreshes.
+    should_poll=False so Home Assistant does not update() each entity every scan.
+    Instead we rely on _handle_coordinator_update when the coordinator refreshes.
+    Subscribes to metal_coordinator for updates (drives the refresh cycle).
+    Reads currency rates from currency_coordinator.data directly (no re-fetch).
     """
 
     _attr_should_poll = False
@@ -218,276 +239,187 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
         name: str,
         unit: str,
         icon: str,
-        coordinator: PreciousMetalCoordinator,
+        metal_coordinator: MetalPriceCoordinator,
+        currency_coordinator: CurrencyCoordinator,
     ) -> None:
-        super().__init__(coordinator)
+        super().__init__(metal_coordinator)
+        self._currency_coordinator = currency_coordinator
         self._attr_name = name
         self._attr_icon = icon
         self._attr_native_unit_of_measurement = unit
         self._attr_unique_id = name.lower().replace(" ", "_")
         self._attr_native_value = None
 
+    # check if we have value or put a 0.0 as default.
+    def _get_rates(self) -> tuple[float, float]:
+        data = self._currency_coordinator.data or {}
+        return float(data.get("gbp_rate", 0.0)), float(data.get("chf_rate", 0.0))
+
     def _update_from_coordinator_data(self) -> None:
-        """Derive this sensor's value from shared coordinator.data."""
+        """Derive this sensor's value from coordinators data."""
         data = self.coordinator.data
         if data is None:
             self._attr_native_value = None
             return
 
-        price_data = data
-
-        # check rate values
-        gbp_rate = data.get("gbp_rate")
-        if gbp_rate is None:
-            gbp_rate = 0.0
-        else:
-            try:
-                gbp_rate = float(gbp_rate)
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid gbp_rate value: %s", gbp_rate)
-                gbp_rate = 0.0
-
-        chf_rate = data.get("chf_rate")
-        if chf_rate is None:
-            chf_rate = 0.0
-        else:
-            try:
-                chf_rate = float(chf_rate)
-            except (ValueError, TypeError):
-                _LOGGER.warning("Invalid chf_rate value: %s", chf_rate)
-                chf_rate = 0.0
+        gbp_rate, chf_rate = self._get_rates()
 
         try:
-            # Update sensor values
-            # ------
+            # Update using elif to limit the unusefull comparisons.
+            n = self._attr_name
             # Gold
-            # ---
-            if self._attr_name == "Gold USD/toz":
-                self._attr_native_value = round(float(price_data["gold_usd"]), 2)
-            # ---
-            if self._attr_name == "Gold USD/g":
-                self._attr_native_value = round(float(price_data["gold_usd"]) / 31.1, 2)
-            # ---
-            if self._attr_name == "Gold USD/kg":
+            if n == "Gold USD/toz":
+                self._attr_native_value = round(float(data["gold_usd"]), 2)
+            elif n == "Gold USD/g":
+                self._attr_native_value = round(float(data["gold_usd"]) / 31.1, 2)
+            elif n == "Gold USD/kg":
                 self._attr_native_value = round(
-                    float(price_data["gold_usd"]) / 31.1 * 1000, 2
+                    float(data["gold_usd"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Gold EUR/toz":
-                self._attr_native_value = round(float(price_data["gold_eur"]), 2)
-            # ---
-            if self._attr_name == "Gold EUR/g":
-                self._attr_native_value = round(float(price_data["gold_eur"]) / 31.1, 2)
-            # ---
-            if self._attr_name == "Gold EUR/kg":
+            elif n == "Gold EUR/toz":
+                self._attr_native_value = round(float(data["gold_eur"]), 2)
+            elif n == "Gold EUR/g":
+                self._attr_native_value = round(float(data["gold_eur"]) / 31.1, 2)
+            elif n == "Gold EUR/kg":
                 self._attr_native_value = round(
-                    float(price_data["gold_eur"]) / 31.1 * 1000, 2
+                    float(data["gold_eur"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Gold GBP/toz":
+            elif n == "Gold GBP/toz":
+                self._attr_native_value = round(float(data["gold_eur"]) * gbp_rate, 2)
+            elif n == "Gold GBP/g":
                 self._attr_native_value = round(
-                    float(price_data["gold_eur"]) * gbp_rate, 2
+                    float(data["gold_eur"]) / 31.1 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Gold GBP/g":
+            elif n == "Gold GBP/kg":
                 self._attr_native_value = round(
-                    (float(price_data["gold_eur"]) / 31.1) * gbp_rate, 2
+                    float(data["gold_eur"]) / 31.1 * 1000 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Gold GBP/kg":
+            elif n == "Gold CHF/toz":
+                self._attr_native_value = round(float(data["gold_eur"]) * chf_rate, 2)
+            elif n == "Gold CHF/g":
                 self._attr_native_value = round(
-                    (float(price_data["gold_eur"]) / 31.1 * 1000) * gbp_rate, 2
+                    float(data["gold_eur"]) / 31.1 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Gold CHF/toz":
+            elif n == "Gold CHF/kg":
                 self._attr_native_value = round(
-                    float(price_data["gold_eur"]) * chf_rate, 2
+                    float(data["gold_eur"]) / 31.1 * 1000 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Gold CHF/g":
-                self._attr_native_value = round(
-                    (float(price_data["gold_eur"]) / 31.1) * chf_rate, 2
-                )
-            # ---
-            if self._attr_name == "Gold CHF/kg":
-                self._attr_native_value = round(
-                    (float(price_data["gold_eur"]) / 31.1 * 1000) * chf_rate, 2
-                )
-            # ------
             # Silver
-            # ---
-            if self._attr_name == "Silver USD/toz":
-                self._attr_native_value = round(float(price_data["silber_usd"]), 2)
-            # ---
-            if self._attr_name == "Silver USD/g":
+            elif n == "Silver USD/toz":
+                self._attr_native_value = round(float(data["silber_usd"]), 2)
+            elif n == "Silver USD/g":
+                self._attr_native_value = round(float(data["silber_usd"]) / 31.1, 2)
+            elif n == "Silver USD/kg":
                 self._attr_native_value = round(
-                    float(price_data["silber_usd"]) / 31.1, 2
+                    float(data["silber_usd"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Silver USD/kg":
+            elif n == "Silver EUR/toz":
+                self._attr_native_value = round(float(data["silber_eur"]), 2)
+            elif n == "Silver EUR/g":
+                self._attr_native_value = round(float(data["silber_eur"]) / 31.1, 2)
+            elif n == "Silver EUR/kg":
                 self._attr_native_value = round(
-                    float(price_data["silber_usd"]) / 31.1 * 1000, 2
+                    float(data["silber_eur"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Silver EUR/toz":
-                self._attr_native_value = round(float(price_data["silber_eur"]), 2)
-            # ---
-            if self._attr_name == "Silver EUR/g":
+            elif n == "Silver GBP/toz":
+                self._attr_native_value = round(float(data["silber_eur"]) * gbp_rate, 2)
+            elif n == "Silver GBP/g":
                 self._attr_native_value = round(
-                    float(price_data["silber_eur"]) / 31.1, 2
+                    float(data["silber_eur"]) / 31.1 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Silver EUR/kg":
+            elif n == "Silver GBP/kg":
                 self._attr_native_value = round(
-                    float(price_data["silber_eur"]) / 31.1 * 1000, 2
+                    float(data["silber_eur"]) / 31.1 * 1000 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Silver GBP/toz":
+            elif n == "Silver CHF/toz":
+                self._attr_native_value = round(float(data["silber_eur"]) * chf_rate, 2)
+            elif n == "Silver CHF/g":
                 self._attr_native_value = round(
-                    float(price_data["silber_eur"]) * gbp_rate, 2
+                    float(data["silber_eur"]) / 31.1 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Silver GBP/g":
+            elif n == "Silver CHF/kg":
                 self._attr_native_value = round(
-                    (float(price_data["silber_eur"]) / 31.1) * gbp_rate, 2
+                    float(data["silber_eur"]) / 31.1 * 1000 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Silver GBP/kg":
-                self._attr_native_value = round(
-                    (float(price_data["silber_eur"]) / 31.1 * 1000) * gbp_rate, 2
-                )
-            # ---
-            if self._attr_name == "Silver CHF/toz":
-                self._attr_native_value = round(
-                    float(price_data["silber_eur"]) * chf_rate, 2
-                )
-            # ---
-            if self._attr_name == "Silver CHF/g":
-                self._attr_native_value = round(
-                    (float(price_data["silber_eur"]) / 31.1) * chf_rate, 2
-                )
-            # ---
-            if self._attr_name == "Silver CHF/kg":
-                self._attr_native_value = round(
-                    (float(price_data["silber_eur"]) / 31.1 * 1000) * chf_rate, 2
-                )
-            # ------
             # Platinum
-            # ---
-            if self._attr_name == "Platinum USD/toz":
-                self._attr_native_value = round(float(price_data["platin_usd"]), 2)
-            # ---
-            if self._attr_name == "Platinum USD/g":
+            elif n == "Platinum USD/toz":
+                self._attr_native_value = round(float(data["platin_usd"]), 2)
+            elif n == "Platinum USD/g":
+                self._attr_native_value = round(float(data["platin_usd"]) / 31.1, 2)
+            elif n == "Platinum USD/kg":
                 self._attr_native_value = round(
-                    float(price_data["platin_usd"]) / 31.1, 2
+                    float(data["platin_usd"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Platinum USD/kg":
+            elif n == "Platinum EUR/toz":
+                self._attr_native_value = round(float(data["platin_eur"]), 2)
+            elif n == "Platinum EUR/g":
+                self._attr_native_value = round(float(data["platin_eur"]) / 31.1, 2)
+            elif n == "Platinum EUR/kg":
                 self._attr_native_value = round(
-                    float(price_data["platin_usd"]) / 31.1 * 1000, 2
+                    float(data["platin_eur"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Platinum EUR/toz":
-                self._attr_native_value = round(float(price_data["platin_eur"]), 2)
-            # ---
-            if self._attr_name == "Platinum EUR/g":
+            elif n == "Platinum GBP/toz":
+                self._attr_native_value = round(float(data["platin_eur"]) * gbp_rate, 2)
+            elif n == "Platinum GBP/g":
                 self._attr_native_value = round(
-                    float(price_data["platin_eur"]) / 31.1, 2
+                    float(data["platin_eur"]) / 31.1 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Platinum EUR/kg":
+            elif n == "Platinum GBP/kg":
                 self._attr_native_value = round(
-                    float(price_data["platin_eur"]) / 31.1 * 1000, 2
+                    float(data["platin_eur"]) / 31.1 * 1000 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Platinum GBP/toz":
+            elif n == "Platinum CHF/toz":
+                self._attr_native_value = round(float(data["platin_eur"]) * chf_rate, 2)
+            elif n == "Platinum CHF/g":
                 self._attr_native_value = round(
-                    float(price_data["platin_eur"]) * gbp_rate, 2
+                    float(data["platin_eur"]) / 31.1 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Platinum GBP/g":
+            elif n == "Platinum CHF/kg":
                 self._attr_native_value = round(
-                    (float(price_data["platin_eur"]) / 31.1) * gbp_rate, 2
+                    float(data["platin_eur"]) / 31.1 * 1000 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Platinum GBP/kg":
-                self._attr_native_value = round(
-                    (float(price_data["platin_eur"]) / 31.1 * 1000) * gbp_rate, 2
-                )
-            # ---
-            if self._attr_name == "Platinum CHF/toz":
-                self._attr_native_value = round(
-                    float(price_data["platin_eur"]) * chf_rate, 2
-                )
-            # ---
-            if self._attr_name == "Platinum CHF/g":
-                self._attr_native_value = round(
-                    (float(price_data["platin_eur"]) / 31.1) * chf_rate, 2
-                )
-            # ---
-            if self._attr_name == "Platinum CHF/kg":
-                self._attr_native_value = round(
-                    (float(price_data["platin_eur"]) / 31.1 * 1000) * chf_rate, 2
-                )
-            # ------
             # Palladium
-            # ---
-            if self._attr_name == "Palladium USD/toz":
-                self._attr_native_value = round(float(price_data["palladium_usd"]), 2)
-            # ---
-            if self._attr_name == "Palladium USD/g":
+            elif n == "Palladium USD/toz":
+                self._attr_native_value = round(float(data["palladium_usd"]), 2)
+            elif n == "Palladium USD/g":
+                self._attr_native_value = round(float(data["palladium_usd"]) / 31.1, 2)
+            elif n == "Palladium USD/kg":
                 self._attr_native_value = round(
-                    float(price_data["palladium_usd"]) / 31.1, 2
+                    float(data["palladium_usd"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Palladium USD/kg":
+            elif n == "Palladium EUR/toz":
+                self._attr_native_value = round(float(data["palladium_eur"]), 2)
+            elif n == "Palladium EUR/g":
+                self._attr_native_value = round(float(data["palladium_eur"]) / 31.1, 2)
+            elif n == "Palladium EUR/kg":
                 self._attr_native_value = round(
-                    float(price_data["palladium_usd"]) / 31.1 * 1000, 2
+                    float(data["palladium_eur"]) / 31.1 * 1000, 2
                 )
-            # ---
-            if self._attr_name == "Palladium EUR/toz":
-                self._attr_native_value = round(float(price_data["palladium_eur"]), 2)
-            # ---
-            if self._attr_name == "Palladium EUR/g":
+            elif n == "Palladium GBP/toz":
                 self._attr_native_value = round(
-                    float(price_data["palladium_eur"]) / 31.1, 2
+                    float(data["palladium_eur"]) * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Palladium EUR/kg":
+            elif n == "Palladium GBP/g":
                 self._attr_native_value = round(
-                    float(price_data["palladium_eur"]) / 31.1 * 1000, 2
+                    float(data["palladium_eur"]) / 31.1 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Palladium GBP/toz":
+            elif n == "Palladium GBP/kg":
                 self._attr_native_value = round(
-                    float(price_data["palladium_eur"]) * gbp_rate, 2
+                    float(data["palladium_eur"]) / 31.1 * 1000 * gbp_rate, 2
                 )
-            # ---
-            if self._attr_name == "Palladium GBP/g":
+            elif n == "Palladium CHF/toz":
                 self._attr_native_value = round(
-                    (float(price_data["palladium_eur"]) / 31.1) * gbp_rate, 2
+                    float(data["palladium_eur"]) * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Palladium GBP/kg":
+            elif n == "Palladium CHF/g":
                 self._attr_native_value = round(
-                    (float(price_data["palladium_eur"]) / 31.1 * 1000) * gbp_rate, 2
+                    float(data["palladium_eur"]) / 31.1 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Palladium CHF/toz":
+            elif n == "Palladium CHF/kg":
                 self._attr_native_value = round(
-                    float(price_data["palladium_eur"]) * chf_rate, 2
+                    float(data["palladium_eur"]) / 31.1 * 1000 * chf_rate, 2
                 )
-            # ---
-            if self._attr_name == "Palladium CHF/g":
-                self._attr_native_value = round(
-                    (float(price_data["palladium_eur"]) / 31.1) * chf_rate, 2
-                )
-            # ---
-            if self._attr_name == "Palladium CHF/kg":
-                self._attr_native_value = round(
-                    (float(price_data["palladium_eur"]) / 31.1 * 1000) * chf_rate, 2
-                )
-            # ---
+
         except KeyError as err:
             _LOGGER.warning(
                 "Missing field %s in API response. Sensor %s cannot be updated.",
@@ -511,6 +443,6 @@ class PreciousMetalSensor(CoordinatorEntity[PreciousMetalCoordinator], SensorEnt
         )
 
     def _handle_coordinator_update(self) -> None:
-        """Called when the coordinator has new data; refresh this sensor's state."""
+        """Called when metal coordinator has new data."""
         self._update_from_coordinator_data()
         self.async_write_ha_state()
