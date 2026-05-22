@@ -39,5 +39,5 @@ This integration has nothing you need to configure or set up. After adding the i
 
 Please note: All data is provided without any guarantee.
 
-- Price data is fetched (evry 5 minutes) in EUR and USD from gold.de API: https://www.gold.de/chartgenerator/#api
+- Price data is fetched (every 5 minutes) in EUR and USD from gold.de API: https://www.gold.de/chartgenerator/#api
 - Currency conversion rates (daily updated) are fetched using this great project: https://github.com/fawazahmed0/exchange-api
