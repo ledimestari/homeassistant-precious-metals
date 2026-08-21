@@ -139,7 +139,7 @@ class MetalPriceCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Metal API updated in %.2fs", time.monotonic() - t0)
                 return price_data
 
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Metal API request failed: %s", err)
             return None
 
