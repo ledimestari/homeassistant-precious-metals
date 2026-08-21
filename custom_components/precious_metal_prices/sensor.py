@@ -169,7 +169,7 @@ class CurrencyCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 eur_data = currency_data.get("eur")
                 if not isinstance(eur_data, dict):
-                    raise ValueError("Currency API missing 'eur' key in response")
+                    raise TypeError("Currency API missing 'eur' key in response")
 
                 if "gbp" not in eur_data or "chf" not in eur_data:
                     raise ValueError("Currency API missing 'gbp' or 'chf' in eur data")
